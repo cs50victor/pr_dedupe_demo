@@ -1,0 +1,16 @@
+name: PR Dedupe
+
+on:
+  pull_request:
+
+
+jobs:
+  pr_dedupe:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Get source code
+        uses: actions/checkout@v4
+      
+      - name: PR Dedupe
+        uses: cs50victor/pr_dedupe@main
+
