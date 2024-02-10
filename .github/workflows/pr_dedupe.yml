@@ -12,7 +12,7 @@ jobs:
         uses: actions/checkout@v4
       
       - name: PR Dedupe
-        uses: cs50victor/pr_dedupe@v0.0.1
+        uses: cs50victor/pr_dedupe@v0.0.2
         env:
           UPSTASH_VECTOR_REST_URL: https://probable-drum-34096-us1-vector.upstash.io
           UPSTASH_VECTOR_REST_TOKEN: ${{ secrets.PR_DEDUPE_UPSTASH_VECTOR_REST_TOKEN }}
