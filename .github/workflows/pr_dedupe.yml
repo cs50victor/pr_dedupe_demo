@@ -1,0 +1,44 @@
+name: PR Dedupe
+
+on:
+  pull_request:
+    types: [opened, reopened, synchronize, edited, closed]
+
+
+# might not be best practice, just need it to work
+permissions: write-all
+
+jobs:
+  pr_dedupe:
+    runs-on: macos-14
+    steps:
+      - name: Get source code
+        uses: actions/checkout@v4
+
+      - name: PR Dedupe
+        id: pr_dedupe
+        uses: cs50victor/pr_dedupe@v0.0.7
+        env:
+          UPSTASH_VECTOR_REST_URL: https://clever-duckling-90037-us1-vector.upstash.io
+          UPSTASH_VECTOR_REST_TOKEN: ${{ secrets.PR_DEDUPE_UPSTASH_VECTOR_REST_TOKEN }}
+
+      - name: Find Comment
+        uses: peter-evans/find-comment@v3
+        id: fc
+        with:
+          issue-number: ${{ github.event.pull_request.number }}
+          comment-author: "github-actions[bot]"
+          body-includes: "<!-- SIMILAR PRS by PR Dedupe -->"
+
+      - name: Create or update comment
+        uses: peter-evans/create-or-update-comment@v4
+        with:
+          comment-id: ${{ steps.fc.outputs.comment-id }}
+          issue-number: ${{ github.event.pull_request.number }}
+          body: |
+            Similar PRs
+            
+            ${{ steps.pr_dedupe.outputs.similar_prs }}
+            
+            "<!-- SIMILAR PRS by PR Dedupe -->"
+          edit-mode: replace
