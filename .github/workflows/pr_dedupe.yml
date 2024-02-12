@@ -14,7 +14,7 @@ jobs:
       
       - name: PR Dedupe
         id: pr_dedupe
-        uses: cs50victor/pr_dedupe@v0.0.4
+        uses: cs50victor/pr_dedupe@v0.0.6
         env:
           UPSTASH_VECTOR_REST_URL: https://clever-duckling-90037-us1-vector.upstash.io
           UPSTASH_VECTOR_REST_TOKEN: ${{ secrets.PR_DEDUPE_UPSTASH_VECTOR_REST_TOKEN }}
