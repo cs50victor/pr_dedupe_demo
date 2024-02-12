@@ -2,16 +2,20 @@ name: PR Dedupe
 
 on:
   pull_request:
-    # types: [opened, reopened, edited, closed]
+    types: [opened, reopened, synchronize, edited, closed]
 
 
 jobs:
   pr_dedupe:
-    runs-on: ubuntu-latest
+    runs-on: macos-14
     steps:
       - name: Get source code
         uses: actions/checkout@v4
       
+      - name: Closed ?
+        shell: bash
+        run: echo is closed? ${{ github.event.action }}
+
       - name: PR Dedupe
         id: pr_dedupe
         uses: cs50victor/pr_dedupe@v0.0.6
