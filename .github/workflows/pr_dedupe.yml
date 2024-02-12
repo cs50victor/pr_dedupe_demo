@@ -2,6 +2,7 @@ name: PR Dedupe
 
 on:
   pull_request:
+    types: [opened, reopened, edited, closed]
 
 
 jobs:
@@ -12,8 +13,26 @@ jobs:
         uses: actions/checkout@v4
       
       - name: PR Dedupe
-        uses: cs50victor/pr_dedupe@v0.0.2
+        id: pr_dedupe
+        uses: cs50victor/pr_dedupe@v0.0.4
         env:
           UPSTASH_VECTOR_REST_URL: https://probable-drum-34096-us1-vector.upstash.io
           UPSTASH_VECTOR_REST_TOKEN: ${{ secrets.PR_DEDUPE_UPSTASH_VECTOR_REST_TOKEN }}
 
+      - name: Find Comment
+        uses: peter-evans/find-comment@v3
+        id: fc
+        with:
+          issue-number: ${{ github.event.pull_request.number }}
+          comment-author: 'pr-dedupe[bot]'
+
+      - name: Create or update comment
+        uses: peter-evans/create-or-update-comment@v4
+        with:
+          comment-id: ${{ steps.fc.outputs.comment-id }}
+          issue-number: ${{ github.event.pull_request.number }}
+          body: |
+            Similar PRs
+            ${{ steps.pr_dedupe.outputs.s }}
+            ${{ steps.build.outputs.build-log }}
+          edit-mode: replace
