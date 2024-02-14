@@ -25,17 +25,20 @@ jobs:
       - name: Parse PR Dedupe Output
         id: fmt
         shell: bash
-        # formatting the output to markdown
-        # this looks horrible but it's equivalent to 
-        # import os, sys, json;
-        # x = ""
-        # for i in json.loads(sys.argv[1])["data"]:
-        #     x+="|#" + i["pr_url"].split("pull")[1][1:] + "|{" + str(i["percentage"]) + "}%|\n"
-        # if x :
-        #     x = f"| PR | Match |\n| ---   | --- |\n{x}"
-        # gh = open(os.environ["GITHUB_OUTPUT"], "a")
-        # print(f'duplicates={value}', file=gh)
-        run: python3 -c 'import os, sys, json;x = "".join(["|#" + i["pr_url"].split("pull")[1][1:] + "|{" + str(i["percentage"]) + "}%|\n"for i in json.loads(sys.argv[1])["data"]]);x = f"| PR | Match |\n| ---   | --- |\n{x}" if x else x;gh=open(os.environ["GITHUB_OUTPUT"],"a");print(f"duplicates={x}",file=gh);' '${{ steps.pr_dedupe.outputs.similar_prs }}'
+        run: |
+          python3 -c 'import os, sys, json
+          pr_dedupe_output = "${{ steps.pr_dedupe.outputs.similar_prs }}"
+
+          y = json.loads(pr_dedupe_output)
+
+          x = "".join(["|#" + i["pr_url"].split("pull")[1][1:] + "|{" + str(i["percentage"]) + "}%|\n"for i in json.loads(sys.argv[1])["data"]])
+
+          if x:
+              x = f"| PR | Match |\n| ---   | --- |\n{x}"
+
+          with open(os.environ["GITHUB_OUTPUT"], "a") as gh:
+              print(f"duplicates={x}", file=gh)'
+        
 
       - name: Log
         shell: bash
