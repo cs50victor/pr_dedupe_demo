@@ -5,7 +5,7 @@ on:
     types: [opened, reopened, synchronize, edited, closed]
 
 
-# might not be best practice, just need it to work
+# might not be best practice, just an example
 permissions: write-all
 
 jobs:
@@ -15,14 +15,36 @@ jobs:
       - name: Get source code
         uses: actions/checkout@v4
 
-      - name: PR Dedupe
+      - name: Find Similar PRs
         id: pr_dedupe
-        uses: cs50victor/pr_dedupe@v0.0.9
+        uses: cs50victor/pr_dedupe@v1.0.0
         env:
           UPSTASH_VECTOR_REST_URL: https://clever-duckling-90037-us1-vector.upstash.io
           UPSTASH_VECTOR_REST_TOKEN: ${{ secrets.PR_DEDUPE_UPSTASH_VECTOR_REST_TOKEN }}
 
+      - name: Parse PR Dedupe Output
+        id: fmt
+        shell: bash
+        # formatting the output to markdown
+        # this looks horrible but it's equivalent to 
+        # import os, sys, json;
+        # x = ""
+        # for i in json.loads(sys.argv[1])["data"]:
+        #     x+="|#" + i["pr_url"].split("pull")[1][1:] + "|{" + str(i["percentage"]) + "}%|\n"
+        # if x :
+        #     x = f"| PR | Match |\n| ---   | --- |\n{x}"
+        # gh = open(os.environ["GITHUB_OUTPUT"], "a")
+        # print(f'duplicates={value}', file=gh)
+        run: python3 -c 'import os, sys, json;x = "".join(["|#" + i["pr_url"].split("pull")[1][1:] + "|{" + str(i["percentage"]) + "}%|\n"for i in json.loads(sys.argv[1])["data"]]);x = f"| PR | Match |\n| ---   | --- |\n{x}" if x else x;gh=open(os.environ["GITHUB_OUTPUT"],"a");print(f"duplicates={x}",file=gh);' '${{ steps.pr_dedupe.outputs.similar_prs }}'
+
+      - name: Log
+        shell: bash
+        run: |
+             echo ${{ steps.pr_dedupe.outputs.similar_prs }}
+             echo ${{ steps.fmt.outputs.duplicates }}
+
       - name: Find Comment
+        if: ${{ steps.fmt.outputs.duplicates != '' }}
         uses: peter-evans/find-comment@v3
         id: fc
         with:
@@ -31,6 +53,7 @@ jobs:
           body-includes: "<!-- SIMILAR PRS by PR Dedupe -->"
 
       - name: Create or update comment
+        if: ${{ steps.fmt.outputs.duplicates != '' }}
         uses: peter-evans/create-or-update-comment@v4
         with:
           comment-id: ${{ steps.fc.outputs.comment-id }}
@@ -38,7 +61,9 @@ jobs:
           body: |
             Similar PRs
             
-            ${{ steps.pr_dedupe.outputs.similar_prs }}
+            ${{ steps.fmt.outputs.duplicates }}
             
             <!-- SIMILAR PRS by PR Dedupe -->
           edit-mode: replace
+
+
