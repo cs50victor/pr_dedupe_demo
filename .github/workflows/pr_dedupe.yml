@@ -17,7 +17,7 @@ jobs:
 
       - name: Find Similar PRs
         id: pr_dedupe
-        uses: cs50victor/pr_dedupe@v1.0.2
+        uses: cs50victor/pr_dedupe@v1.0.5
         env:
           UPSTASH_VECTOR_REST_URL: https://clever-duckling-90037-us1-vector.upstash.io
           UPSTASH_VECTOR_REST_TOKEN: ${{ secrets.PR_DEDUPE_UPSTASH_VECTOR_REST_TOKEN }}
@@ -27,7 +27,6 @@ jobs:
         run: |
              echo ${{ steps.pr_dedupe.outputs.similar_prs }}
              echo ${{ steps.pr_dedupe.outputs.similar_prs_markdown }}
-             echo ${{ steps.fmt.outputs.duplicates }}
 
       - name: Find Comment
         if: ${{ steps.pr_dedupe.outputs.similar_prs_markdown != '' }}
