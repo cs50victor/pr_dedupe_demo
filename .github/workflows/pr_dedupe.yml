@@ -8,6 +8,9 @@ on:
 # might not be best practice, just an example
 permissions: write-all
 
+env:
+  CLOSE_PR: true
+
 jobs:
   pr_dedupe:
     runs-on: macos-14
@@ -29,9 +32,11 @@ jobs:
              output_table=${{ steps.pr_dedupe.outputs.similar_prs_markdown }}
              output_table=${output_table:1:-1}
              echo "output_table=$output_table" >> $GITHUB_ENV
+             echo $output_table
+             ${{ env.CLOSE_PR }}
 
       - name: Find Comment
-        if: ${{ env.output_table != '' }}
+        if: ${{ env.output_table != '' && env.CLOSE_PR == false }}
         uses: peter-evans/find-comment@v3
         id: fc
         with:
@@ -40,7 +45,7 @@ jobs:
           body-includes: "<!-- SIMILAR PRS by PR Dedupe -->"
 
       - name: Create or update comment
-        if: ${{ env.output_table != '' }}
+        if: ${{ env.output_table != '' && env.CLOSE_PR == false }}
         uses: peter-evans/create-or-update-comment@v4
         with:
           comment-id: ${{ steps.fc.outputs.comment-id }}
@@ -51,5 +56,11 @@ jobs:
 
             <!-- SIMILAR PRS by PR Dedupe -->
           edit-mode: replace
+      
+      - name: Close Pull
+        if: ${{ env.CLOSE_PR }}
+        run: gh pr close --comment "List of Similar PRs\n ${{ env.output_table }} " --delete-branch ${{ github.event.pull_request.number }}
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
 
