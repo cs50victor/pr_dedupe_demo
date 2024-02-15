@@ -17,37 +17,20 @@ jobs:
 
       - name: Find Similar PRs
         id: pr_dedupe
-        uses: cs50victor/pr_dedupe@v1.0.0
+        uses: cs50victor/pr_dedupe@v1.0.2
         env:
           UPSTASH_VECTOR_REST_URL: https://clever-duckling-90037-us1-vector.upstash.io
           UPSTASH_VECTOR_REST_TOKEN: ${{ secrets.PR_DEDUPE_UPSTASH_VECTOR_REST_TOKEN }}
-
-      - name: Parse PR Dedupe Output
-        id: fmt
-        shell: bash
-        run: |
-          python3 -c 'import os, sys, json
-          pr_dedupe_output = "${{ steps.pr_dedupe.outputs.similar_prs }}"
-
-          y = json.loads(pr_dedupe_output)
-
-          x = "".join(["|#" + i["pr_url"].split("pull")[1][1:] + "|{" + str(i["percentage"]) + "}%|\n"for i in json.loads(sys.argv[1])["data"]])
-
-          if x:
-              x = f"| PR | Match |\n| ---   | --- |\n{x}"
-
-          with open(os.environ["GITHUB_OUTPUT"], "a") as gh:
-              print(f"duplicates={x}", file=gh)'
-        
 
       - name: Log
         shell: bash
         run: |
              echo ${{ steps.pr_dedupe.outputs.similar_prs }}
+             echo ${{ steps.pr_dedupe.outputs.similar_prs_markdown }}
              echo ${{ steps.fmt.outputs.duplicates }}
 
       - name: Find Comment
-        if: ${{ steps.fmt.outputs.duplicates != '' }}
+        if: ${{ steps.pr_dedupe.outputs.similar_prs_markdown != '' }}
         uses: peter-evans/find-comment@v3
         id: fc
         with:
@@ -56,7 +39,7 @@ jobs:
           body-includes: "<!-- SIMILAR PRS by PR Dedupe -->"
 
       - name: Create or update comment
-        if: ${{ steps.fmt.outputs.duplicates != '' }}
+        if: ${{ steps.pr_dedupe.outputs.similar_prs_markdown != '' }}
         uses: peter-evans/create-or-update-comment@v4
         with:
           comment-id: ${{ steps.fc.outputs.comment-id }}
@@ -64,7 +47,7 @@ jobs:
           body: |
             Similar PRs
             
-            ${{ steps.fmt.outputs.duplicates }}
+            ${{ steps.pr_dedupe.outputs.similar_prs_markdown }}
             
             <!-- SIMILAR PRS by PR Dedupe -->
           edit-mode: replace
