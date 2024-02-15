@@ -22,14 +22,16 @@ jobs:
           UPSTASH_VECTOR_REST_URL: https://clever-duckling-90037-us1-vector.upstash.io
           UPSTASH_VECTOR_REST_TOKEN: ${{ secrets.PR_DEDUPE_UPSTASH_VECTOR_REST_TOKEN }}
 
-      - name: Log
+      - name: Remove Quotation from Output
+        if: ${{ steps.pr_dedupe.outputs.similar_prs_markdown != '' }}
         shell: bash
         run: |
-             echo ${{ steps.pr_dedupe.outputs.similar_prs }}
-             echo ${{ steps.pr_dedupe.outputs.similar_prs_markdown }}
+             output_table=${{ steps.pr_dedupe.outputs.similar_prs_markdown }}
+             output_table=${output_table:1:-1}
+             echo "output_table=$output_table" >> $GITHUB_ENV
 
       - name: Find Comment
-        if: ${{ steps.pr_dedupe.outputs.similar_prs_markdown != '' }}
+        if: ${{ env.output_table != '' }}
         uses: peter-evans/find-comment@v3
         id: fc
         with:
@@ -38,16 +40,15 @@ jobs:
           body-includes: "<!-- SIMILAR PRS by PR Dedupe -->"
 
       - name: Create or update comment
-        if: ${{ steps.pr_dedupe.outputs.similar_prs_markdown != '' }}
+        if: ${{ env.output_table != '' }}
         uses: peter-evans/create-or-update-comment@v4
         with:
           comment-id: ${{ steps.fc.outputs.comment-id }}
           issue-number: ${{ github.event.pull_request.number }}
           body: |
-            Similar PRs
-            
-            ${{ steps.pr_dedupe.outputs.similar_prs_markdown }}
-            
+            List of Similar PRs
+            ${{ env.output_table }}
+
             <!-- SIMILAR PRS by PR Dedupe -->
           edit-mode: replace
 
