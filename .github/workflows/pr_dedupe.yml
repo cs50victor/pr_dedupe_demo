@@ -4,9 +4,11 @@ on:
   pull_request:
     types: [opened, reopened, synchronize, edited, closed]
 
-
-# might not be best practice, just need it to work
+# might not be best practice, just an example
 permissions: write-all
+
+env:
+  CLOSE_PR: false
 
 jobs:
   pr_dedupe:
@@ -15,14 +17,24 @@ jobs:
       - name: Get source code
         uses: actions/checkout@v4
 
-      - name: PR Dedupe
+      - name: Find Similar PRs
         id: pr_dedupe
-        uses: cs50victor/pr_dedupe@v0.0.9
+        uses: cs50victor/pr_dedupe@v1.0.8
         env:
           UPSTASH_VECTOR_REST_URL: https://clever-duckling-90037-us1-vector.upstash.io
           UPSTASH_VECTOR_REST_TOKEN: ${{ secrets.PR_DEDUPE_UPSTASH_VECTOR_REST_TOKEN }}
 
+      - name: Remove Quotation from Output
+        if: ${{ steps.pr_dedupe.outputs.similar_prs_markdown != '' }}
+        shell: bash
+        run: |
+             output_table=${{ steps.pr_dedupe.outputs.similar_prs_markdown }}
+             output_table=${output_table:1:-1}
+             echo "output_table=$output_table" >> $GITHUB_ENV
+             echo $output_table
+
       - name: Find Comment
+        if: ${{ env.output_table != '' && !env.CLOSE_PR }}
         uses: peter-evans/find-comment@v3
         id: fc
         with:
@@ -31,14 +43,21 @@ jobs:
           body-includes: "<!-- SIMILAR PRS by PR Dedupe -->"
 
       - name: Create or update comment
+        if: ${{ env.output_table != '' && !env.CLOSE_PR }}
         uses: peter-evans/create-or-update-comment@v4
         with:
           comment-id: ${{ steps.fc.outputs.comment-id }}
           issue-number: ${{ github.event.pull_request.number }}
           body: |
-            Similar PRs
-            
-            ${{ steps.pr_dedupe.outputs.similar_prs }}
-            
+            List of Similar PRs
+            ${{ env.output_table }}
+
             <!-- SIMILAR PRS by PR Dedupe -->
           edit-mode: replace
+      
+      - name: Close Pull
+        if: ${{ env.CLOSE_PR }}
+        run: gh pr close --comment "List of Similar PRs${{ env.output_table }} " --delete-branch ${{ github.event.pull_request.number }}
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
