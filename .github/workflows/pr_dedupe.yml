@@ -36,7 +36,7 @@ jobs:
              ${{ env.CLOSE_PR }}
 
       - name: Find Comment
-        if: ${{ env.output_table != '' && env.CLOSE_PR == false }}
+        if: ${{ env.output_table != '' && !env.CLOSE_PR }}
         uses: peter-evans/find-comment@v3
         id: fc
         with:
@@ -45,7 +45,7 @@ jobs:
           body-includes: "<!-- SIMILAR PRS by PR Dedupe -->"
 
       - name: Create or update comment
-        if: ${{ env.output_table != '' && env.CLOSE_PR == false }}
+        if: ${{ env.output_table != '' && !env.CLOSE_PR }}
         uses: peter-evans/create-or-update-comment@v4
         with:
           comment-id: ${{ steps.fc.outputs.comment-id }}
@@ -59,7 +59,7 @@ jobs:
       
       - name: Close Pull
         if: ${{ env.CLOSE_PR }}
-        run: gh pr close --comment "List of Similar PRs\n ${{ env.output_table }} " --delete-branch ${{ github.event.pull_request.number }}
+        run: gh pr close --comment "List of Similar PRs${{ env.output_table }} " --delete-branch ${{ github.event.pull_request.number }}
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
